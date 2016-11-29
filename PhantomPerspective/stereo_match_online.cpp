@@ -11,14 +11,13 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/core/utility.hpp"
+#include "stereo_matcher_initializer.h"
 
 #include <stdio.h>
 
 using namespace cv;
-enum { STEREO_BM = 0, STEREO_SGBM = 1, STEREO_HH = 2, STEREO_VAR = 3, STEREO_3WAY = 4 };
 
-int alg = STEREO_SGBM;
-Mat map11, map12, map21, map22;
+
 
 static void print_help()
 {
@@ -44,7 +43,8 @@ static void saveXYZ(const char* filename, const Mat& mat)
 	fclose(fp);
 }
 
-int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher> sgbm) {
+int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher> sgbm,
+		       int alg, maps &m) {
 	Mat img1, img2;
 	char charCheckForEsc = 0;
 
@@ -64,8 +64,8 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 
 		Mat img1r, img2r;
 		Mat disp, disp8;
-		remap(img1, img1r, map11, map12, INTER_LINEAR);
-		remap(img2, img2r, map21, map22, INTER_LINEAR);
+		remap(img1, img1r, m.map11, m.map12, INTER_LINEAR);
+		remap(img2, img2r, m.map21, m.map22, INTER_LINEAR);
 
 		img1 = img1r;
 		img2 = img2r;
@@ -91,7 +91,7 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 }
 
 
-int main(int argc, char** argv)
+int mainOneline(int argc, char** argv)
 {
 	std::string intrinsic_filename = "";
 	std::string extrinsic_filename = "";
@@ -105,8 +105,8 @@ int main(int argc, char** argv)
 	float scale;
 
 
-	Ptr<StereoBM> bm = StereoBM::create(16, 9);
-	Ptr<StereoSGBM> sgbm = StereoSGBM::create(0, 16, 3);
+	int alg = STEREO_BM;
+	
 	cv::CommandLineParser parser(argc, argv,
 		"{@cam1ind|1|} {@cam2ind|2|}{help h||}{algorithm||}{max-disparity|0|}{blocksize|0|}{no-display||}{scale|1|}{i|intrinsics.yml|}{e|extrinsics.yml|}{o||}{p||}");
 	if (parser.has("help"))
@@ -127,6 +127,11 @@ int main(int argc, char** argv)
 	numberOfDisparities = parser.get<int>("max-disparity");
 	SADWindowSize = parser.get<int>("blocksize");
 	scale = parser.get<float>("scale");
+	if(scale != 1){
+	  printf("Different scale not supported currently");
+	  return -1;
+	}
+	
 	no_display = parser.has("no-display");
 
 	intrinsic_filename = parser.get<std::string>("i");
@@ -199,78 +204,21 @@ int main(int argc, char** argv)
 	Rect roi1, roi2;
 	Mat Q;
 
-	if (!intrinsic_filename.empty()) {
-		// reading intrinsic parameters
-		FileStorage fs(intrinsic_filename, FileStorage::READ);
-		if (!fs.isOpened())
-		{
-			printf("Failed to open file %s\n", intrinsic_filename.c_str());
-			return -1;
-		}
-
-		Mat M1, D1, M2, D2;
-		fs["M1"] >> M1;
-		fs["D1"] >> D1;
-		fs["M2"] >> M2;
-		fs["D2"] >> D2;
-
-		M1 *= scale;
-		M2 *= scale;
-
-		fs.open(extrinsic_filename, FileStorage::READ);
-		if (!fs.isOpened())
-		{
-			printf("Failed to open file %s\n", extrinsic_filename.c_str());
-			return -1;
-		}
-
-		Mat R, T, R1, P1, R2, P2;
-		fs["R"] >> R;
-		fs["T"] >> T;
-
-		stereoRectify(M1, D1, M2, D2, img_size, R, T, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, -1, img_size, &roi1, &roi2);
-
-
-		initUndistortRectifyMap(M1, D1, R1, P1, img_size, CV_16SC2, map11, map12);
-		initUndistortRectifyMap(M2, D2, R2, P2, img_size, CV_16SC2, map21, map22);
-
+	trinsics p;
+	if(!loadCameraParams(intrinsic_filename, extrinsic_filename, p)) {
+	  printf("Problem loading intrinsics or extrinsics\n");
+	  return -1;
 	}
+	stereoRectify(p.M1, p.D1, p.M2, p.D2, img_size, p.R, p.T, p.R1, p.R2, p.P1, p.P2, p.Q,
+		      CALIB_ZERO_DISPARITY, -1, img_size, &roi1, &roi2);
 
-	numberOfDisparities = numberOfDisparities > 0 ? numberOfDisparities : ((img_size.width / 8) + 15) & -16;
+	maps m;
+	initUndistortRectifyMap(p.M1, p.D1, p.R1, p.P1, img_size, CV_16SC2, m.map11, m.map12);
+	initUndistortRectifyMap(p.M2, p.D2, p.R2, p.P2, img_size, CV_16SC2, m.map21, m.map22);
 
-	bm->setROI1(roi1);
-	bm->setROI2(roi2);
-	bm->setPreFilterCap(31);
-	bm->setBlockSize(SADWindowSize > 0 ? SADWindowSize : 9);
-	bm->setMinDisparity(0);
-	bm->setNumDisparities(numberOfDisparities);
-	bm->setTextureThreshold(10);
-	bm->setUniquenessRatio(15);
-	bm->setSpeckleWindowSize(100);
-	bm->setSpeckleRange(32);
-	bm->setDisp12MaxDiff(1);
 
-	sgbm->setPreFilterCap(63);
-	int sgbmWinSize = SADWindowSize > 0 ? SADWindowSize : 3;
-	sgbm->setBlockSize(sgbmWinSize);
 
 	int cn = img1.channels();
-
-	sgbm->setP1(8 * cn*sgbmWinSize*sgbmWinSize);
-	sgbm->setP2(32 * cn*sgbmWinSize*sgbmWinSize);
-	sgbm->setMinDisparity(0);
-	sgbm->setNumDisparities(numberOfDisparities);
-	sgbm->setUniquenessRatio(10);
-	sgbm->setSpeckleWindowSize(100);
-	sgbm->setSpeckleRange(32);
-	sgbm->setDisp12MaxDiff(1);
-	if (alg == STEREO_HH)
-		sgbm->setMode(StereoSGBM::MODE_HH);
-	else if (alg == STEREO_SGBM)
-		sgbm->setMode(StereoSGBM::MODE_SGBM);
-	else if (alg == STEREO_3WAY)
-		sgbm->setMode(StereoSGBM::MODE_SGBM_3WAY);
-
 
 	//Mat img1p, img2p, dispp;
 	//copyMakeBorder(img1, img1p, 0, 0, numberOfDisparities, 0, IPL_BORDER_REPLICATE);
@@ -281,9 +229,9 @@ int main(int argc, char** argv)
 	Ptr<StereoMatcher> usedBm;
 
 	if (alg == STEREO_BM)
-		usedBm = bm;
+		usedBm = getStereoBM(roi1, roi2, SADWindowSize, numberOfDisparities);
 	else if (alg == STEREO_SGBM || alg == STEREO_HH || alg == STEREO_3WAY)
-		usedBm = sgbm;
+	  usedBm = getStereoSGBM(SADWindowSize, numberOfDisparities, cn, alg);
 
 	t = getTickCount() - t;
 	printf("Time elapsed: %fms\n", t * 1000 / getTickFrequency());
@@ -294,7 +242,7 @@ int main(int argc, char** argv)
 	// else
 
 	if (!no_display) {
-		continuousDepthMap(camLeft, camRight, usedBm);
+	  continuousDepthMap(camLeft, camRight, usedBm, alg, m);
 	}
 
 	// if (!disparity_filename.empty())
