@@ -1,0 +1,8 @@
+*.png
+*.jpg
+*.sln
+*/x64
+*.vcxproj*
+*.vs
+*.VC.*
+*/Debug
