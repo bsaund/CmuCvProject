@@ -3,23 +3,20 @@
 using namespace std;
 using namespace cv;
 
-
-void getDifferentPerspective(Mat &img1, Mat &img2, 
-														 Mat img1_colored, Mat img2_colored, 
-														 Mat &R, Mat &T,
-														 Ptr<StereoMatcher> sgbm,
-														 maps &m, trinsics &p, 
-														 Mat &disp, Mat &newImage) {
-
+void rectifyBoth(Mat &img1, Mat &img2, const maps &m){
 	Mat img1r, img2r;
-	
 	remap(img1, img1r, m.map11, m.map12, INTER_LINEAR);
 	remap(img2, img2r, m.map21, m.map22, INTER_LINEAR);
-	
 	img1 = img1r;
 	img2 = img2r;
+}
 
-	sgbm->compute(img1, img2, disp);
+
+void getDifferentPerspective(Mat img1_colored, Mat img2_colored, 
+														 Mat &R, Mat &T,
+														 trinsics &p, 
+														 Mat &disp, Mat &newImage) {
+
 
 	Mat _3dImage;
 	reprojectImageTo3D(disp, _3dImage, p.Q, true);

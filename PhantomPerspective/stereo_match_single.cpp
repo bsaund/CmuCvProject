@@ -66,6 +66,12 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	double increment = 0.01;
 
 	char charCheckForEsc = 0;
+
+	img1 = orig1.clone();
+	img2 = orig2.clone();
+	rectifyBoth(img1, img2, m);
+	sgbm->compute(img1, img2, disp);
+
 	while (charCheckForEsc != 27){
 
 		
@@ -77,10 +83,8 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 		
 		Mat T = movement*p.T/10;
 		
-		img1 = orig1.clone();
-		img2 = orig2.clone();
-		getDifferentPerspective(img1, img2, img1_colored, img2_colored,
-														R, T, sgbm, m, p, disp, newImage);
+		getDifferentPerspective(img1_colored, img2_colored,
+														R, T, p, disp, newImage);
 		disp.convertTo(disp8, CV_8U);
 
 		imshow("left", img1);
@@ -111,8 +115,8 @@ int main(int argc, char** argv)
 	bool no_display = false;
 	float scale = 1;
 
-	// int alg = STEREO_BM;
-	int alg =STEREO_SGBM;
+	int alg = STEREO_BM;
+	// int alg =STEREO_SGBM;
 	// STEREO_HH;
 	// STEREO_VAR;
 	// STEREO_3WAY;

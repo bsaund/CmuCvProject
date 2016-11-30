@@ -77,8 +77,11 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 		Mat R = Mat::eye(3, 3, cv::DataType<double>::type);
 		Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
-		getDifferentPerspective(img1, img2, img1_colored, img2_colored,
-														R, T, sgbm, m, p, disp, newImage);
+		rectifyBoth(img1, img2, m);
+		sgbm->compute(img1, img2, disp);
+
+		getDifferentPerspective(img1_colored, img2_colored,
+														R, T, p, disp, newImage);
 
 		disp.convertTo(disp8, CV_8U);
 
