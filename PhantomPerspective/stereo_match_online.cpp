@@ -70,8 +70,10 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 		}
 
 		Mat disp, disp8, newImage;
+		Mat R = Mat::eye(3, 3, cv::DataType<double>::type);
+		Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
-		getDifferentPerspective(img1, img2, sgbm, m, p, disp, newImage);
+		getDifferentPerspective(img1, img2, R, T, sgbm, m, p, disp, newImage);
 
 		disp.convertTo(disp8, CV_8U);
 
