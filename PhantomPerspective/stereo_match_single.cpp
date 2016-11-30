@@ -12,6 +12,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/core/utility.hpp"
 #include "stereo_matcher_initializer.h"
+#include "perspective_matcher.h"
 
 #include <stdio.h>
 
@@ -44,30 +45,26 @@ static void saveXYZ(const char* filename, const Mat& mat)
   fclose(fp);
 }
 
-int singleDepthMap(Mat img1, Mat img2, Ptr<StereoMatcher> sgbm, int alg, maps m) {
+int singleDepthMap(Mat img1, Mat img2, Ptr<StereoMatcher> sgbm, 
+	int alg, maps m, trinsics &p) {
   namedWindow("left", 1);
   namedWindow("right", 1);
-  namedWindow("disparity", 0);
+  namedWindow("disparity", 1);
+  namedWindow("newPerspective", 1);
 
-  Mat img1r, img2r;
-  Mat disp, disp8;
-  remap(img1, img1r, m.map11, m.map12, INTER_LINEAR);
-  remap(img2, img2r, m.map21, m.map22, INTER_LINEAR);
+ 
+  Mat disp, disp8, newImage;
+ 
 
-  img1 = img1r;
-  img2 = img2r;
+  getDifferentPerspective(img1, img2, sgbm, m, p, disp, newImage);
 
-
-
-
-  sgbm->compute(img1, img2, disp);
-  disp /= 10;
   disp.convertTo(disp8, CV_8U);
 
 
   imshow("left", img1);
   imshow("right", img2);
   imshow("disparity", disp8);
+  imshow("newPerspective", newImage);
   waitKey();
   return 1;
 }
@@ -169,7 +166,7 @@ int main(int argc, char** argv)
   // else
 
   if (!no_display) {
-    singleDepthMap(img1, img2, usedBm, alg, m);
+    singleDepthMap(img1, img2, usedBm, alg, m, p);
   }
 
   // if (!disparity_filename.empty())

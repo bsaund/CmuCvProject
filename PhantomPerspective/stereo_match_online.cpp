@@ -12,6 +12,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/core/utility.hpp"
 #include "stereo_matcher_initializer.h"
+#include "perspective_matcher.h"
 
 #include <stdio.h>
 
@@ -44,7 +45,7 @@ static void saveXYZ(const char* filename, const Mat& mat)
 }
 
 int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher> sgbm,
-		       int alg, maps &m) {
+		       int alg, maps &m, trinsics &p) {
 	Mat img1, img2;
 	char charCheckForEsc = 0;
 
@@ -54,6 +55,7 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 		namedWindow("left", 1);
 		namedWindow("right", 1);
 		namedWindow("disparity", 0);
+		namedWindow("reprojection");
 		camL >> img1;
 		camR >> img2;
 
@@ -62,28 +64,21 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 			imwrite("right.jpg", img2);
 		}
 
-		Mat img1r, img2r;
-		Mat disp, disp8;
-		remap(img1, img1r, m.map11, m.map12, INTER_LINEAR);
-		remap(img2, img2r, m.map21, m.map22, INTER_LINEAR);
-
-		img1 = img1r;
-		img2 = img2r;
-
 		if (alg == STEREO_BM) {
 			cvtColor(img1, img1, CV_BGR2GRAY);
 			cvtColor(img2, img2, CV_BGR2GRAY);
 		}
 
+		Mat disp, disp8, newImage;
 
-		sgbm->compute(img1, img2, disp);
-		disp /= 10;
+		getDifferentPerspective(img1, img2, sgbm, m, p, disp, newImage);
+
 		disp.convertTo(disp8, CV_8U);
-
 
 		imshow("left", img1);
 		imshow("right", img2);
 		imshow("disparity", disp8);
+		imshow("reprojection", newImage);
 		charCheckForEsc = cv::waitKey(1);		// delay (in ms) and get key press, if any
 
 	}
@@ -91,7 +86,7 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 }
 
 
-int mainOneline(int argc, char** argv)
+int mainOnline(int argc, char** argv)
 {
 	std::string intrinsic_filename = "";
 	std::string extrinsic_filename = "";
@@ -108,7 +103,7 @@ int mainOneline(int argc, char** argv)
 	int alg = STEREO_BM;
 	
 	cv::CommandLineParser parser(argc, argv,
-		"{@cam1ind|1|} {@cam2ind|2|}{help h||}{algorithm||}{max-disparity|0|}{blocksize|0|}{no-display||}{scale|1|}{i|intrinsics.yml|}{e|extrinsics.yml|}{o||}{p||}");
+		"{@cam1ind|1|} {@cam2ind|2|}{help h||}{algorithm|bm|}{max-disparity|256|}{blocksize|9|}{no-display||}{scale|1|}{i|intrinsics.yml|}{e|extrinsics.yml|}{o||}{p||}");
 	if (parser.has("help"))
 	{
 		print_help();
@@ -202,7 +197,6 @@ int mainOneline(int argc, char** argv)
 	Size img_size = img1.size();
 
 	Rect roi1, roi2;
-	Mat Q;
 
 	trinsics p;
 	if(!loadCameraParams(intrinsic_filename, extrinsic_filename, p)) {
@@ -242,7 +236,7 @@ int mainOneline(int argc, char** argv)
 	// else
 
 	if (!no_display) {
-	  continuousDepthMap(camLeft, camRight, usedBm, alg, m);
+	  continuousDepthMap(camLeft, camRight, usedBm, alg, m, p);
 	}
 
 	// if (!disparity_filename.empty())
