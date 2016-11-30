@@ -45,7 +45,7 @@ static void saveXYZ(const char* filename, const Mat& mat)
   fclose(fp);
 }
 
-int singleDepthMap(Mat img1, Mat img2, Ptr<StereoMatcher> sgbm, 
+int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored, Ptr<StereoMatcher> sgbm, 
 	int alg, maps m, trinsics &p) {
   namedWindow("left", 1);
   namedWindow("right", 1);
@@ -56,13 +56,13 @@ int singleDepthMap(Mat img1, Mat img2, Ptr<StereoMatcher> sgbm,
   Mat disp, disp8, newImage;
  
 
-  getDifferentPerspective(img1, img2, sgbm, m, p, disp, newImage);
+  getDifferentPerspective(img1, img2, img1_colored, img2_colored, sgbm, m, p, disp, newImage);
 
   disp.convertTo(disp8, CV_8U);
 
 
-  imshow("left", img1);
-  imshow("right", img2);
+  imshow("left", img1_colored);
+  imshow("right", img2_colored); 
   imshow("disparity", disp8);
   imshow("newPerspective", newImage);
   waitKey();
@@ -120,9 +120,14 @@ int main(int argc, char** argv)
 
   int color_mode = alg == STEREO_BM ? 0 : -1;
 
+  
+  Mat img1_colored = imread(img1_filename, CV_LOAD_IMAGE_COLOR);
+  Mat img2_colored = imread(img2_filename, CV_LOAD_IMAGE_COLOR);
 
   Mat img1 = imread(img1_filename, color_mode);
   Mat img2 = imread(img2_filename, color_mode);
+  
+ 
 
   Size img_size = img1.size();
 
@@ -166,7 +171,7 @@ int main(int argc, char** argv)
   // else
 
   if (!no_display) {
-    singleDepthMap(img1, img2, usedBm, alg, m, p);
+    singleDepthMap(img1, img2, img1_colored, img2_colored, usedBm, alg, m, p);
   }
 
   // if (!disparity_filename.empty())

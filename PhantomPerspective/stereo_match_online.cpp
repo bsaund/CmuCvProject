@@ -71,7 +71,7 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 
 		Mat disp, disp8, newImage;
 
-		getDifferentPerspective(img1, img2, sgbm, m, p, disp, newImage);
+		//getDifferentPerspective(img1, img2,sgbm, m, p, disp, newImage);
 
 		disp.convertTo(disp8, CV_8U);
 

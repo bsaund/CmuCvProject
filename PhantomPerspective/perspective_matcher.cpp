@@ -1,8 +1,9 @@
 #include "perspective_matcher.h"
-
+#include<iostream>
+using namespace std;
 using namespace cv;
 
-void getDifferentPerspective(Mat &img1, Mat &img2, Ptr<StereoMatcher> sgbm,
+void getDifferentPerspective(Mat &img1, Mat &img2, Mat img1_colored, Mat img2_colored, Ptr<StereoMatcher> sgbm,
 	maps &m, trinsics &p, Mat &disp, Mat &newImage) {
 
 	Mat img1r, img2r;
@@ -20,7 +21,7 @@ void getDifferentPerspective(Mat &img1, Mat &img2, Ptr<StereoMatcher> sgbm,
 	reprojectImageTo3D(disp, _3dImage, p.Q, true);
 	Mat imagePoints;
 
-
+	//cout << img1_colored.type();
 	_3dImage = _3dImage.reshape(3, 1);
 	projectPoints(_3dImage, Mat::eye(3, 3, cv::DataType<double>::type),
 		Mat::zeros(3, 1, cv::DataType<double>::type), p.M1, Mat(),
@@ -32,20 +33,21 @@ void getDifferentPerspective(Mat &img1, Mat &img2, Ptr<StereoMatcher> sgbm,
 	//printf("channels: %d\n", _3dImage.channels());
 	//printf("rows: %d, cols: %d, dims: %d, chan: %d", imagePoints.rows, imagePoints.cols, imagePoints.dims, imagePoints.channels());
 
-	newImage = Mat::zeros(img1.size(), CV_8U);
-	for (int i = 0; i < imagePoints.rows; i++) {
+	newImage = Mat::zeros(img1_colored.size(), img1_colored.type());
+	for (int i = 0; i < imagePoints.rows; i++) {				
 		//printf("depth: %f\n", _3dImage.at<Vec3f>(0,i)[2]);
 		if (_3dImage.at<Vec3f>(0, i)[2] > 100)
 			continue;
-
+	
 		Vec2f v = imagePoints.at<Vec2f>(i, 0);
 		int x = round(v[0]);
 		int y = round(v[1]);
-
+		
 		if (x < 0 || y < 0 || y >= newImage.rows || x >= newImage.cols)
 			continue;
-		newImage.at<uchar>(y, x) = img1.at<uchar>(i);
+		newImage.at<Vec3b>(y, x) = img1_colored.at<Vec3b>(i);
 	}
+
 }
 
 
