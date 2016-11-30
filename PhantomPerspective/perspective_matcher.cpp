@@ -12,6 +12,39 @@ void rectifyBoth(Mat &img1, Mat &img2, const maps &m){
 }
 
 
+
+bool isFilled(const Mat &img, int y, int x){
+	Vec3b p = img.at<Vec3b>(y, x);
+	return p[0] || p[1] || p[2];
+}
+
+
+
+void postFillIn(Mat &img){
+	for(int y=1; y<img.rows-1; y++){
+		for(int x=1; x<img.cols-1; x++){
+			if(isFilled(img, y, x))
+				continue;
+
+			//fill in horizontal lines from aliasing
+			if(isFilled(img, y-1, x) && isFilled(img, y+1, x)){
+				img.at<Vec3b>(y,x) = img.at<Vec3b>(y-1, x)/2 + img.at<Vec3b>(y+1, x)/2;
+				continue;
+			}
+
+
+			//fill in veritcal lines from aliasing
+			if(isFilled(img, y, x-1) && isFilled(img, y, x+1)){
+				img.at<Vec3b>(y,x) = img.at<Vec3b>(y, x-1)/2 + img.at<Vec3b>(y, x+1)/2;
+				continue;
+			}
+
+
+		}
+	}
+}
+
+
 void getDifferentPerspective(Mat img1_colored, Mat img2_colored, 
 														 Mat &R, Mat &T,
 														 trinsics &p, 
@@ -47,7 +80,7 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 			continue;
 		newImage.at<Vec3b>(y, x) = img1_colored.at<Vec3b>(i);
 	}
-
+	postFillIn(newImage);
 }
 
 

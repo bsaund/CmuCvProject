@@ -70,6 +70,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	img1 = orig1.clone();
 	img2 = orig2.clone();
 	rectifyBoth(img1, img2, m);
+	rectifyBoth(img1_colored, img2_colored, m);
 	sgbm->compute(img1, img2, disp);
 
 	while (charCheckForEsc != 27){
@@ -115,13 +116,13 @@ int main(int argc, char** argv)
 	bool no_display = false;
 	float scale = 1;
 
-	int alg = STEREO_BM;
-	// int alg =STEREO_SGBM;
+	// int alg = STEREO_BM;
+	int alg =STEREO_SGBM;
 	// STEREO_HH;
 	// STEREO_VAR;
 	// STEREO_3WAY;
 
-	numberOfDisparities = 320;
+	numberOfDisparities = 208;
 	SADWindowSize = 9;
 
 	if (numberOfDisparities < 1 || numberOfDisparities % 16 != 0)		{
