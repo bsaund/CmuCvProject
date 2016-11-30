@@ -3,15 +3,19 @@
 using namespace std;
 using namespace cv;
 
-void getDifferentPerspective(Mat &img1, Mat &img2, Mat img1_colored, Mat img2_colored, Ptr<StereoMatcher> sgbm,
-	maps &m, trinsics &p, Mat &disp, Mat &newImage) {
+
+void getDifferentPerspective(Mat &img1, Mat &img2, 
+														 Mat img1_colored, Mat img2_colored, 
+														 Mat &R, Mat &T,
+														 Ptr<StereoMatcher> sgbm,
+														 maps &m, trinsics &p, 
+														 Mat &disp, Mat &newImage) {
 
 	Mat img1r, img2r;
-
-
+	
 	remap(img1, img1r, m.map11, m.map12, INTER_LINEAR);
 	remap(img2, img2r, m.map21, m.map22, INTER_LINEAR);
-
+	
 	img1 = img1r;
 	img2 = img2r;
 
@@ -23,12 +27,11 @@ void getDifferentPerspective(Mat &img1, Mat &img2, Mat img1_colored, Mat img2_co
 
 	//cout << img1_colored.type();
 	_3dImage = _3dImage.reshape(3, 1);
-	projectPoints(_3dImage, Mat::eye(3, 3, cv::DataType<double>::type),
-		Mat::zeros(3, 1, cv::DataType<double>::type), p.M1, Mat(),
-		imagePoints);
-	//projectPoints(_3dImage, p.R,
-	//	p.T/10, p.M1, Mat(),
-	//	imagePoints);
+	// projectPoints(_3dImage, Mat::eye(3, 3, cv::DataType<double>::type),
+	// 	Mat::zeros(3, 1, cv::DataType<double>::type), p.M1, Mat(),
+	// 	imagePoints);
+	projectPoints(_3dImage, R, T, p.M1, Mat(), imagePoints);
+		
 	//printf("rows: %d, cols: %d, dims: %d, ", _3dImage.rows, _3dImage.cols, _3dImage.dims);
 	//printf("channels: %d\n", _3dImage.channels());
 	//printf("rows: %d, cols: %d, dims: %d, chan: %d", imagePoints.rows, imagePoints.cols, imagePoints.dims, imagePoints.channels());

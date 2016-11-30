@@ -46,7 +46,7 @@ static void saveXYZ(const char* filename, const Mat& mat)
 
 int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher> sgbm,
 		       int alg, maps &m, trinsics &p) {
-	Mat img1, img2;
+	Mat img1, img2, img1_colored, img2_colored;
 	char charCheckForEsc = 0;
 
 
@@ -56,12 +56,16 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 		namedWindow("right", 1);
 		namedWindow("disparity", 0);
 		namedWindow("reprojection");
-		camL >> img1;
-		camR >> img2;
+		camL >> img1_colored;
+		camR >> img2_colored;
+
 
 		if (charCheckForEsc == 'c') {
 			imwrite("left.jpg", img1);
 			imwrite("right.jpg", img2);
+		} else {
+			img1 = img1_colored.clone();
+			img2 = img2_colored.clone();
 		}
 
 		if (alg == STEREO_BM) {
@@ -70,8 +74,11 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 		}
 
 		Mat disp, disp8, newImage;
+		Mat R = Mat::eye(3, 3, cv::DataType<double>::type);
+		Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
-		//getDifferentPerspective(img1, img2,sgbm, m, p, disp, newImage);
+		getDifferentPerspective(img1, img2, img1_colored, img2_colored,
+														R, T, sgbm, m, p, disp, newImage);
 
 		disp.convertTo(disp8, CV_8U);
 
