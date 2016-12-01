@@ -55,21 +55,15 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 	reprojectImageTo3D(disp, _3dImage, p.Q, true);
 	Mat imagePoints;
 
-	//cout << img1_colored.type();
+
 	_3dImage = _3dImage.reshape(3, 1);
-	// projectPoints(_3dImage, Mat::eye(3, 3, cv::DataType<double>::type),
-	// 	Mat::zeros(3, 1, cv::DataType<double>::type), p.M1, Mat(),
-	// 	imagePoints);
+
 	projectPoints(_3dImage, R, T, p.M1, Mat(), imagePoints);
 		
-	//printf("rows: %d, cols: %d, dims: %d, ", _3dImage.rows, _3dImage.cols, _3dImage.dims);
-	//printf("channels: %d\n", _3dImage.channels());
-	//printf("rows: %d, cols: %d, dims: %d, chan: %d", imagePoints.rows, imagePoints.cols, imagePoints.dims, imagePoints.channels());
-
 	newImage = Mat::zeros(img1_colored.size(), img1_colored.type());
 	for (int i = 0; i < imagePoints.rows; i++) {				
 		//printf("depth: %f\n", _3dImage.at<Vec3f>(0,i)[2]);
-		if (_3dImage.at<Vec3f>(0, i)[2] > 100)
+		if (_3dImage.at<Vec3f>(0, i)[2] > 1000)
 			continue;
 	
 		Vec2f v = imagePoints.at<Vec2f>(i, 0);
@@ -78,7 +72,10 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 		
 		if (x < 0 || y < 0 || y >= newImage.rows || x >= newImage.cols)
 			continue;
+
+		//These two lines do almost the same thing, since the colors should match for the two images
 		newImage.at<Vec3b>(y, x) = img1_colored.at<Vec3b>(i);
+		// newImage.at<Vec3b>(y, x) = img2_colored.at<Vec3b>(i - disp.at<float>(i));
 	}
 	postFillIn(newImage);
 }

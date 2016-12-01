@@ -57,7 +57,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	Mat orig2 = img2.clone();
 
 	
-	Mat disp, disp8, newImage;
+	Mat disp, newImage;
  
 	Mat R = Mat::eye(3, 3, cv::DataType<double>::type);
 	Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
@@ -71,7 +71,12 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	img2 = orig2.clone();
 	rectifyBoth(img1, img2, m);
 	rectifyBoth(img1_colored, img2_colored, m);
-	sgbm->compute(img1, img2, disp);
+
+	Mat dispInt;
+	sgbm->compute(img1, img2, dispInt);
+
+	dispInt.convertTo(disp, CV_32F);
+	disp /= 16;  //sgbm returns disp as a 4-fractional-bit short
 
 	while (charCheckForEsc != 27){
 
@@ -82,15 +87,14 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 		movement += increment;
 		printf("Movement by %f:\n", movement);
 		
-		Mat T = movement*p.T/10;
+		Mat T = movement*p.T;
 		
 		getDifferentPerspective(img1_colored, img2_colored,
 														R, T, p, disp, newImage);
-		disp.convertTo(disp8, CV_8U);
 
 		imshow("left", img1);
 		imshow("right", img2);
-		imshow("disparity", disp8);
+		imshow("disparity", disp/sgbm->getNumDisparities());
 		imshow("newPerspective", newImage);
 		
 		charCheckForEsc = cv::waitKey(1);		// delay (in ms) and get key press, if any
