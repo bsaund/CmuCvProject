@@ -13,3 +13,12 @@ target_link_libraries( stereo_match_single
   ${OpenCV_LIBS} 
   stereo_match_initializer
   perspective_matcher)
+
+
+
+# Commented because no main because visual studio
+# add_executable(stereo_match_online stereo_match_online.cpp)
+# target_link_libraries( stereo_match_online
+#   ${OpenCV_LIBS} 
+#   stereo_match_initializer
+#   perspective_matcher)

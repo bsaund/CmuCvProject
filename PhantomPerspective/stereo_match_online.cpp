@@ -54,8 +54,8 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 	while (charCheckForEsc != 27 && camL.isOpened() && camR.isOpened()) {
 		namedWindow("left", 1);
 		namedWindow("right", 1);
-		namedWindow("disparity", 0);
-		namedWindow("reprojection");
+		namedWindow("disparity", 1);
+		namedWindow("reprojection",1);
 		camL >> img1_colored;
 		camR >> img2_colored;
 
@@ -73,21 +73,24 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 			cvtColor(img2, img2, CV_BGR2GRAY);
 		}
 
-		Mat disp, disp8, newImage;
+		Mat disp, dispInt, newImage;
 		Mat R = Mat::eye(3, 3, cv::DataType<double>::type);
 		Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
 		rectifyBoth(img1, img2, m);
 		sgbm->compute(img1, img2, disp);
 
+		dispInt.convertTo(disp, CV_32F);
+		disp /= 16;  //sgbm returns disp as a 4-fractional-bit short
+
+
 		getDifferentPerspective(img1_colored, img2_colored,
 														R, T, p, disp, newImage);
 
-		disp.convertTo(disp8, CV_8U);
 
 		imshow("left", img1);
 		imshow("right", img2);
-		imshow("disparity", disp8);
+		imshow("disparity", disp/sgbm->getNumDisparities());
 		imshow("reprojection", newImage);
 		charCheckForEsc = cv::waitKey(1);		// delay (in ms) and get key press, if any
 
