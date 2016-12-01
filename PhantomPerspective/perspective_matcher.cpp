@@ -50,7 +50,6 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 														 trinsics &p, 
 														 Mat &disp, Mat &newImage) {
 
-
 	Mat _3dImage;
 	reprojectImageTo3D(disp, _3dImage, p.Q, true);
 	Mat imagePoints;
@@ -61,7 +60,7 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 	// 	Mat::zeros(3, 1, cv::DataType<double>::type), p.M1, Mat(),
 	// 	imagePoints);
 	projectPoints(_3dImage, R, T, p.M1, Mat(), imagePoints);
-		
+ 		
 	//printf("rows: %d, cols: %d, dims: %d, ", _3dImage.rows, _3dImage.cols, _3dImage.dims);
 	//printf("channels: %d\n", _3dImage.channels());
 	//printf("rows: %d, cols: %d, dims: %d, chan: %d", imagePoints.rows, imagePoints.cols, imagePoints.dims, imagePoints.channels());
@@ -78,8 +77,13 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 		
 		if (x < 0 || y < 0 || y >= newImage.rows || x >= newImage.cols)
 			continue;
-		newImage.at<Vec3b>(y, x) = img1_colored.at<Vec3b>(i);
+		newImage.at<Vec3b>(y, x) =  img1_colored.at<Vec3b>(i);		
 	}
+	/*for (int row = 0; row < newImage.rows; row++){
+		for (int col = 0; col < newImage.cols; col++) {
+
+		}
+	}*/
 	postFillIn(newImage);
 }
 

@@ -13,11 +13,11 @@
 #include "opencv2/core/utility.hpp"
 #include "stereo_matcher_initializer.h"
 #include "perspective_matcher.h"
-
+#include <iostream>
 #include <stdio.h>
-
+#include <typeinfo>
 using namespace cv;
-
+using namespace std;
 
 
 
@@ -63,7 +63,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
 	double movement = 0;
-	double increment = 0.01;
+	double increment = +0.01;
 
 	char charCheckForEsc = 0;
 
@@ -72,10 +72,28 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	rectifyBoth(img1, img2, m);
 	rectifyBoth(img1_colored, img2_colored, m);
 	sgbm->compute(img1, img2, disp);
-
+	//cout<<typeid(disp.type()).name();
+	disp.convertTo(disp8, CV_8U);
+	//cout << disp.at<short>(1, 1);
+	for (int row = 1; row < disp.rows-1; row++){
+		for (int col = 1; col < disp.cols-1; col++) {
+			 if(disp.at<short>(row, col)>0);
+				continue;
+				if (disp.at<short>(row-1 , col) > 0) {
+					int ind = 0;
+					while (disp.at<short>(row + ind, col) == 0) {
+						ind += 1;
+					}
+					for (int k = 0; k < ind; k++) {
+						disp.at<short>(row + k, col) = disp.at<short>(row - 1, col) + (disp.at<short>(row + ind, col) - disp.at<short>(row - 1, col))*(k + 1)/ind;
+					}
+			 }
+		}
+	}
+	//cout << disp.type() << disp.channels();
+	
 	while (charCheckForEsc != 27){
-
-		
+	
 		if(movement > 1 || movement < 0){
 			increment *= -1;
 		}
@@ -86,8 +104,12 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 		
 		getDifferentPerspective(img1_colored, img2_colored,
 														R, T, p, disp, newImage);
-		disp.convertTo(disp8, CV_8U);
+		//disp.convertTo(disp8, CV_8U);
 
+		/*Mat dst;
+		flip(img1, dst, 1);
+		imshow("flipped", dst);*/
+		
 		imshow("left", img1);
 		imshow("right", img2);
 		imshow("disparity", disp8);
@@ -122,7 +144,7 @@ int main(int argc, char** argv)
 	// STEREO_VAR;
 	// STEREO_3WAY;
 
-	numberOfDisparities = 208;
+	numberOfDisparities = 320;
 	SADWindowSize = 9;
 
 	if (numberOfDisparities < 1 || numberOfDisparities % 16 != 0)		{
@@ -159,6 +181,11 @@ int main(int argc, char** argv)
   Mat img1 = imread(img1_filename, color_mode);
   Mat img2 = imread(img2_filename, color_mode);
   
+  //Mat img1_flipped, img2_flipped, img1_colored_flipped, img2_colored_flipped;
+  //flip(img1, img1_flipped, 1);
+  //flip(img2, img2_flipped, 1);
+  //flip(img1_colored, img1_colored_flipped, 1);
+  //flip(img2_colored, img2_colored_flipped, 1);
 
 	Size img_size = img1.size();
 
