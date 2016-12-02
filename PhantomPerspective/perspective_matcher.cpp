@@ -192,9 +192,9 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 
 	}
 	// preFilterDisp(depthImage);
-	preFilterNewImg(newImage);
-	postFillIn(newImage, depthImage, img1_colored, img2_colored, 
-						 cameFromL, cameFromR);
+	// preFilterNewImg(newImage);
+	// postFillIn(newImage, depthImage, img1_colored, img2_colored, 
+	// 					 cameFromL, cameFromR);
 	
 }
 
