@@ -18,6 +18,14 @@ bool isFilled(const Mat &img, int y, int x){
 	return p[0] || p[1] || p[2];
 }
 
+bool isFilledD(const Mat &img, int y, int x){
+	return img.at<float>(y, x) != 0;
+}
+
+bool isFilledI(const Mat &img, int y, int x){
+	return img.at<int>(y, x) != 0;
+}
+
 
 void fillInLines(Mat &img){
 	for(int y=1; y<img.rows-1; y++){
@@ -26,8 +34,9 @@ void fillInLines(Mat &img){
 				continue;
 
 			//fill in horizontal lines from aliasing
-			if(isFilled(img, y-1, x) && isFilled(img, y+1, x)){
-				img.at<Vec3b>(y,x) = img.at<Vec3b>(y-1, x)/2 + img.at<Vec3b>(y+1, x)/2;
+			int n = 1;
+			if(isFilled(img, y-1, x) && isFilled(img, y+n, x)){
+				img.at<Vec3b>(y,x) = img.at<Vec3b>(y-1, x)/2 + img.at<Vec3b>(y+n, x)/2;
 				continue;
 			}
 
@@ -41,13 +50,59 @@ void fillInLines(Mat &img){
 	}
 }
 
+void fillInLinesDepth(Mat &img){
+	for(int y=1; y<img.rows-1; y++){
+		for(int x=1; x<img.cols-1; x++){
+			if(isFilledD(img, y, x))
+				continue;
+
+			//fill in horizontal lines from aliasing
+			int n = 1;
+			if(isFilledD(img, y-1, x) && isFilledD(img, y+n, x)){
+				img.at<float>(y,x) = img.at<float>(y-1, x)/2 + img.at<float>(y+n, x)/2;
+				continue;
+			}
+
+			//fill in veritcal lines from aliasing
+			if(isFilledD(img, y, x-1) && isFilledD(img, y, x+1)){
+				img.at<float>(y,x) = img.at<float>(y, x-1)/2 + img.at<float>(y, x+1)/2;
+				continue;
+			}
+		}
+	}
+}
+
+void fillInLinesFrom(Mat &img){
+	for(int y=1; y<img.rows-1; y++){
+		for(int x=1; x<img.cols-1; x++){
+			if(isFilledI(img, y, x))
+				continue;
+
+			//fill in horizontal lines from aliasing
+			int n = 1;
+			if(isFilledI(img, y-1, x) && isFilledI(img, y+n, x)){
+				img.at<int>(y,x) = img.at<int>(y-1, x)/2 + img.at<int>(y+n, x)/2;
+				continue;
+			}
+
+			//fill in veritcal lines from aliasing
+			if(isFilledI(img, y, x-1) && isFilledI(img, y, x+1)){
+				img.at<int>(y,x) = img.at<int>(y, x-1)/2 + img.at<int>(y, x+1)/2;
+				continue;
+			}
+		}
+	}
+}
+
 void fillInMissingCorr(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 											 Mat &lFrom, Mat &rFrom){
+	int numFill = 0;
 	for(int y=1; y<img.rows-1; y++){
 		int rd = 0;
 		int ld = 0;
 		bool fillingPatch = false;
 		int leftInd = 0;
+
 		for(int x=1; x<img.cols-1; x++){
 			if(!isFilled(img, y, x)){
 				if(!fillingPatch){
@@ -57,46 +112,59 @@ void fillInMissingCorr(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 				fillingPatch = true;
 				continue;
 			}
-			
+
 			if(!fillingPatch)
 				continue;
 
+			fillingPatch = false;			
+			
+
+			
+
 			rd = depthImg.at<float>(y,x);
 			int rightInd = x;
+			
+
+			if(rightInd - leftInd > 5)
+				continue;
+
+			printf("width %d\n", rightInd - leftInd);			
 
 			if(ld < rd){
-				if(leftInd == 0){
-					int lImgL = lFrom.at<int>(y,rightInd);
-					for(int i = 1; i < rightInd-leftInd; i++){
-						img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(lImgL - i);
-						// img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(y, rightInd- i);
-					}
-				} else {
-					int rImgR = rFrom.at<int>(y,rightInd);
-					for(int i = 1; i < rightInd-leftInd; i++){
-						// for(int ind = leftInd+1; ind < rightInd; ind++){
-						img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(rImgR - i);
-					}
-
+				// if(leftInd == 0){
+				// 	break;
+				// 	int lImgL = lFrom.at<int>(y,rightInd);
+				// 	for(int i = 1; i < rightInd-leftInd; i++){
+				// 		img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(lImgL - i);
+				// 		// img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(y, rightInd- i);
+				// 	}
+				// } else {
+				int rImgR = rFrom.at<int>(y,rightInd);
+				for(int i = 1; i < rightInd-leftInd; i++){
+					// for(int ind = leftInd+1; ind < rightInd; ind++){
+					// img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(y, (rImgR - i)/rightImg.cols);
+					img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(rImgR - i);
 				}
+
+				// }
 			} else {
 				int lImgL = lFrom.at<int>(y,leftInd);
 				for(int i = 1; i < rightInd-leftInd; i++){
 					img.at<Vec3b>(y,leftInd + i) = leftImg.at<Vec3b>(lImgL + i);
 				}
 			}
-
-
+			
 			rd = 0;
 			ld = 0;
-			fillingPatch = false;
+
 		}
 	}	
+	printf("Num fill: %d\n", numFill);
 }
 
 void postFillIn(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 								Mat &lFrom, Mat &rFrom){
-	fillInLines(img);
+
 	fillInMissingCorr(img, depthImg, leftImg, rightImg, lFrom, rFrom);
 }
 
@@ -191,10 +259,31 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 		
 
 	}
-	// preFilterDisp(depthImage);
-	// preFilterNewImg(newImage);
-	// postFillIn(newImage, depthImage, img1_colored, img2_colored, 
-	// 					 cameFromL, cameFromR);
+	namedWindow("preLine", 1);
+	imshow("preLines", newImage);
+
+	fillInLines(newImage);
+	fillInLinesDepth(depthImage);
+	fillInLinesFrom(cameFromL);
+	fillInLinesFrom(cameFromR);
+
+
+	namedWindow("postLines", 1);
+	imshow("postLines", newImage);
+
+
+	preFilterDisp(depthImage);
+	preFilterNewImg(newImage);
+
+	namedWindow("postFilt", 1);
+	imshow("postFilt", newImage);
+
+	postFillIn(newImage, depthImage, img1_colored, img2_colored, 
+						 cameFromL, cameFromR);
+
+	namedWindow("postFill", 1);
+	imshow("postFill", newImage);
+
 	
 }
 

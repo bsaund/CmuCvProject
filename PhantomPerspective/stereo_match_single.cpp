@@ -68,7 +68,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
 	double movement = 0;
-	double increment = 0.1;
+	double increment = 0.01;
 
 	char charCheckForEsc = 0;
 
@@ -84,10 +84,10 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	wls_filter = createDisparityWLSFilter(sgbm);
 	right_matcher->compute(img2, img1, dispRight);
 
-	// wls_filter->setLambda(6000000);
-	// wls_filter->setSigmaColor(0.5);
-	// wls_filter->filter(dispInt, img1, dispIntFilt, dispRight);
-	// dispIntFilt.convertTo(disp, CV_32F);
+	wls_filter->setLambda(6000);
+	wls_filter->setSigmaColor(1.5);
+	wls_filter->filter(dispInt, img1, dispIntFilt, dispRight);
+	dispIntFilt.convertTo(disp, CV_32F);
 
 	dispInt.convertTo(disp, CV_32F);
 	disp /= 16;  //sgbm returns disp as a 4-fractional-bit short
@@ -126,8 +126,8 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 
 int main(int argc, char** argv)
 {
-	std::string img1_filename = "testImgs/7_left.jpg";
-	std::string img2_filename = "testImgs/7_right.jpg";
+	std::string img1_filename = "testImgs/8_left.jpg";
+	std::string img2_filename = "testImgs/8_right.jpg";
 	
 	std::string intrinsic_filename = "testImgs/intrinsics.yml";
 	std::string extrinsic_filename = "testImgs/extrinsics.yml";
@@ -139,14 +139,16 @@ int main(int argc, char** argv)
 	bool no_display = false;
 	float scale = 1;
 
-	int alg = STEREO_BM;
-	// int alg =STEREO_SGBM;
+	// int alg = STEREO_BM;
+	int alg =STEREO_SGBM;
 	// STEREO_HH;
 	// STEREO_VAR;
 	// STEREO_3WAY;
 
 	numberOfDisparities = 176;
-	SADWindowSize = 9;
+	// numberOfDisparities = 128;
+	// numberOfDisparities = 256;
+	SADWindowSize = 5;
 
 	if (numberOfDisparities < 1 || numberOfDisparities % 16 != 0)		{
 	printf("Command-line parameter error: The max disparity (--maxdisparity=<...>) must be a positive integer divisible by 16\n");
