@@ -48,7 +48,8 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 		       int alg, maps &m, trinsics &p) {
 	Mat img1, img2, img1_colored, img2_colored;
 	char charCheckForEsc = 0;
-
+	double movement = 0;
+	double increment = 0.1;
 
 
 	while (charCheckForEsc != 27 && camL.isOpened() && camR.isOpened()) {
@@ -59,6 +60,13 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 		camL >> img1_colored;
 		camR >> img2_colored;
 
+		if(movement > 1 || movement < 0){
+			increment *= -1;
+		}
+		movement += increment;
+		// printf("Movement by %f:\n", movement);
+		
+		Mat T = movement*p.T;
 
 
 		if (charCheckForEsc == 'c') {
@@ -76,7 +84,7 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 
 		Mat disp, dispInt, newImage, depthImage;
 		Mat R = Mat::eye(3, 3, cv::DataType<double>::type);
-		Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
+		// Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
 		rectifyBoth(img1, img2, m);
 		imshow("left", img1);
@@ -120,7 +128,7 @@ int main(int argc, char** argv)
 	int alg = STEREO_BM;
 	
 	cv::CommandLineParser parser(argc, argv,
-		"{@cam1ind|2|} {@cam2ind|0|}{help h||}{algorithm|sgbm|}{max-disparity|256|}{blocksize|9|}{no-display||}{scale|1|}{i|intrinsics.yml|}{e|extrinsics.yml|}{o||}{p||}");
+		"{@cam1ind|2|} {@cam2ind|0|}{help h||}{algorithm|bm|}{max-disparity|256|}{blocksize|9|}{no-display||}{scale|1|}{i|intrinsics.yml|}{e|extrinsics.yml|}{o||}{p||}");
 	if (parser.has("help"))
 	{
 		print_help();
