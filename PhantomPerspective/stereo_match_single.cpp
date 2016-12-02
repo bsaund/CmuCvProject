@@ -84,7 +84,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	wls_filter = createDisparityWLSFilter(sgbm);
 	right_matcher->compute(img2, img1, dispRight);
 
-	wls_filter->setLambda(8000);
+	wls_filter->setLambda(6000000);
 	wls_filter->setSigmaColor(0.5);
 	
 	wls_filter->filter(dispInt, img1, dispIntFilt, dispRight);

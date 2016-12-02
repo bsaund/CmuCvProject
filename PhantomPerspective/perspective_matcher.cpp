@@ -100,6 +100,55 @@ void postFillIn(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 	fillInMissingCorr(img, depthImg, leftImg, rightImg, lFrom, rFrom);
 }
 
+void preFilterNewImg(Mat &img){
+	for(int x=0; x<img.cols; x++){
+		bool topFilled = true;
+		int stretch = 0;
+		for(int y=1; y<img.rows-1; y++){
+			// if(!topFilled && img.at<float>(y+1,x) == 0){
+			// 	img.at<float>(y,x) = 0;
+			// }
+			if(stretch < 5 && !isFilled(img, y+1,x)){
+				for(;stretch>=0;stretch--){
+					img.at<Vec3b>(y-stretch,x) = Vec3b(0,0,0);
+				}
+			}
+			if(!isFilled(img, y,x)){
+				stretch++;
+			} else {
+				stretch = 0;
+			}
+			// topFilled = isFilled(img,
+			// topFilled = (img.at<float>(y,x) != 0);
+		}
+	}
+}
+
+
+void preFilterDisp(Mat &disp){
+	for(int x=0; x<disp.cols; x++){
+		bool topFilled = true;
+		int stretch = 0;
+		for(int y=1; y<disp.rows-1; y++){
+			// if(!topFilled && disp.at<float>(y+1,x) == 0){
+			// 	disp.at<float>(y,x) = 0;
+			// }
+			if(stretch < 5 && disp.at<float>(y+1,x)==0){
+				for(;stretch>=0;stretch--){
+					disp.at<float>(y-stretch,x) = 0;
+				}
+			}
+			if(disp.at<float>(y,x) == 0){
+				stretch++;
+			} else {
+				stretch = 0;
+			}
+			// topFilled = isFilled(img,
+			// topFilled = (disp.at<float>(y,x) != 0);
+		}
+	}
+}
+
 
 void getDifferentPerspective(Mat img1_colored, Mat img2_colored, 
 							 Mat &R, Mat &T,
@@ -142,6 +191,8 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 		
 
 	}
+	// preFilterDisp(depthImage);
+	preFilterNewImg(newImage);
 	postFillIn(newImage, depthImage, img1_colored, img2_colored, 
 						 cameFromL, cameFromR);
 	
