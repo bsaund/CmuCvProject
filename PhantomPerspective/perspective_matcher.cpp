@@ -102,9 +102,9 @@ void postFillIn(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 
 
 void getDifferentPerspective(Mat img1_colored, Mat img2_colored, 
-														 Mat &R, Mat &T,
-														 trinsics &p, 
-														 Mat &disp, Mat &newImage, Mat &depthImage) {
+							 Mat &R, Mat &T,
+							 trinsics &p, 
+							 Mat &disp, Mat &newImage, Mat &depthImage) {
 
 
 	Mat _3dImage;
@@ -134,11 +134,13 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 
 		//These two lines do almost the same thing, since the colors should match for the two images
 		newImage.at<Vec3b>(y, x) = img1_colored.at<Vec3b>(i);
+		// newImage.at<Vec3b>(y, x) = img2_colored.at<Vec3b>(i - disp.at<float>(i));
+		
 		depthImage.at<float>(y, x) = _3dImage.at<Vec3f>(0,i)[2];
 		cameFromL.at<int>(y,x) = i;
 		cameFromR.at<int>(y,x) = i - (int)disp.at<float>(i);
 		
-		// newImage.at<Vec3b>(y, x) = img2_colored.at<Vec3b>(i - disp.at<float>(i));
+
 	}
 	postFillIn(newImage, depthImage, img1_colored, img2_colored, 
 						 cameFromL, cameFromR);

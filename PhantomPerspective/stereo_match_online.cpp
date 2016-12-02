@@ -60,6 +60,7 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 		camR >> img2_colored;
 
 
+
 		if (charCheckForEsc == 'c') {
 			imwrite("left.jpg", img1);
 			imwrite("right.jpg", img2);
@@ -73,23 +74,26 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 			cvtColor(img2, img2, CV_BGR2GRAY);
 		}
 
-		Mat disp, dispInt, newImage;
+		Mat disp, dispInt, newImage, depthImage;
 		Mat R = Mat::eye(3, 3, cv::DataType<double>::type);
 		Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
 		rectifyBoth(img1, img2, m);
-		sgbm->compute(img1, img2, disp);
+		imshow("left", img1);
+		imshow("right", img2);
+
+		
+		sgbm->compute(img1, img2, dispInt);
 
 		dispInt.convertTo(disp, CV_32F);
 		disp /= 16;  //sgbm returns disp as a 4-fractional-bit short
 
 
 		getDifferentPerspective(img1_colored, img2_colored,
-														R, T, p, disp, newImage);
+			R, T, p, disp, newImage, depthImage);
+	
 
 
-		imshow("left", img1);
-		imshow("right", img2);
 		imshow("disparity", disp/sgbm->getNumDisparities());
 		imshow("reprojection", newImage);
 		charCheckForEsc = cv::waitKey(1);		// delay (in ms) and get key press, if any
@@ -99,7 +103,7 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 }
 
 
-int mainOnline(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	std::string intrinsic_filename = "";
 	std::string extrinsic_filename = "";
@@ -116,7 +120,7 @@ int mainOnline(int argc, char** argv)
 	int alg = STEREO_BM;
 	
 	cv::CommandLineParser parser(argc, argv,
-		"{@cam1ind|1|} {@cam2ind|2|}{help h||}{algorithm|bm|}{max-disparity|256|}{blocksize|9|}{no-display||}{scale|1|}{i|intrinsics.yml|}{e|extrinsics.yml|}{o||}{p||}");
+		"{@cam1ind|2|} {@cam2ind|0|}{help h||}{algorithm|sgbm|}{max-disparity|256|}{blocksize|9|}{no-display||}{scale|1|}{i|intrinsics.yml|}{e|extrinsics.yml|}{o||}{p||}");
 	if (parser.has("help"))
 	{
 		print_help();

@@ -78,9 +78,12 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 
 	dispInt.convertTo(disp, CV_32F);
 	disp /= 16;  //sgbm returns disp as a 4-fractional-bit short
+	imshow("left", img1);
+	imshow("right", img2);
+
 
 	while (charCheckForEsc != 27){
-		
+		int64 t = getTickCount();		
 		if(movement > 1 || movement < 0){
 			increment *= -1;
 		}
@@ -93,13 +96,14 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 														R, T, p, disp, newImage, depth_img);
 
 		int numDisp = sgbm->getNumDisparities();
-		imshow("left", img1);
-		imshow("right", img2);
 		imshow("disparity", disp/numDisp);
 		imshow("newPerspective", newImage(Rect(numDisp, 0, 640 - numDisp, 480)));
 		imshow("newDepth", depth_img/100);
 		
 		charCheckForEsc = cv::waitKey(1);		// delay (in ms) and get key press, if any
+		t = getTickCount() - t;
+		printf("Time elapsed: %fms\n", t * 1000 / getTickFrequency());
+
 	}
 
 	return 1;
@@ -107,7 +111,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 }
 
 
-int main(int argc, char** argv)
+int mainSingle(int argc, char** argv)
 {
 	std::string img1_filename = "testImgs/left.jpg";
 	std::string img2_filename = "testImgs/right.jpg";

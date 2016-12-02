@@ -377,8 +377,8 @@ int main(int argc, char** argv) {
 		"{prel prefixleft|image_left_|Left image name prefix. Ex: image_left_}"
 		"{prer prefixright|image_right_|Right image name postfix. Ex: image_right_}"
 		"{post postfix|jpg|Image extension. Ex: jpg,png etc}"
-		"{cam1|1|Camera 1 Index}"
-		"{cam2|2|Camera 2 Index}";
+		"{cam1|2|Camera 1 Index}"
+		"{cam2|0|Camera 2 Index}";
 	CommandLineParser parser(argc, argv, keys);
 	if (parser.has("help")) {
 		parser.printMessage();
