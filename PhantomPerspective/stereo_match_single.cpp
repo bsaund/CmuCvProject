@@ -13,10 +13,12 @@
 #include "opencv2/core/utility.hpp"
 #include "stereo_matcher_initializer.h"
 #include "perspective_matcher.h"
+#include "opencv2/ximgproc/disparity_filter.hpp"
 
 #include <stdio.h>
 
 using namespace cv;
+using namespace cv::ximgproc;
 
 
 
@@ -53,12 +55,14 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	namedWindow("newPerspective", 1);
 	namedWindow("newDepth", 1);
 
+	Ptr<DisparityWLSFilter> wls_filter;
+
 
 	Mat orig1 = img1.clone();
 	Mat orig2 = img2.clone();
 
 	
-	Mat disp, newImage, depth_img;
+	Mat disp, dispRight, newImage, depth_img;
  
 	Mat R = Mat::eye(3, 3, cv::DataType<double>::type);
 	Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
@@ -73,10 +77,19 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	rectifyBoth(img1, img2, m);
 	rectifyBoth(img1_colored, img2_colored, m);
 
-	Mat dispInt;
+	Mat dispInt, dispIntFilt;
 	sgbm->compute(img1, img2, dispInt);
+	
+	Ptr<StereoMatcher> right_matcher = createRightMatcher(sgbm);
+	wls_filter = createDisparityWLSFilter(sgbm);
+	right_matcher->compute(img2, img1, dispRight);
 
-	dispInt.convertTo(disp, CV_32F);
+	wls_filter->setLambda(8000);
+	wls_filter->setSigmaColor(0.5);
+	
+	wls_filter->filter(dispInt, img1, dispIntFilt, dispRight);
+
+	dispIntFilt.convertTo(disp, CV_32F);
 	disp /= 16;  //sgbm returns disp as a 4-fractional-bit short
 	imshow("left", img1);
 	imshow("right", img2);
