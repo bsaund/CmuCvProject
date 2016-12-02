@@ -80,23 +80,23 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	disp /= 16;  //sgbm returns disp as a 4-fractional-bit short
 
 	while (charCheckForEsc != 27){
-		printf("test");
 		
 		if(movement > 1 || movement < 0){
 			increment *= -1;
 		}
 		movement += increment;
-		printf("Movement by %f:\n", movement);
+		// printf("Movement by %f:\n", movement);
 		
 		Mat T = movement*p.T;
 		
 		getDifferentPerspective(img1_colored, img2_colored,
 														R, T, p, disp, newImage, depth_img);
 
+		int numDisp = sgbm->getNumDisparities();
 		imshow("left", img1);
 		imshow("right", img2);
-		imshow("disparity", disp/sgbm->getNumDisparities());
-		imshow("newPerspective", newImage);
+		imshow("disparity", disp/numDisp);
+		imshow("newPerspective", newImage(Rect(numDisp, 0, 640 - numDisp, 480)));
 		imshow("newDepth", depth_img/100);
 		
 		charCheckForEsc = cv::waitKey(1);		// delay (in ms) and get key press, if any
@@ -122,14 +122,14 @@ int main(int argc, char** argv)
 	bool no_display = false;
 	float scale = 1;
 
-	int alg = STEREO_BM;
-	// int alg =STEREO_SGBM;
+	// int alg = STEREO_BM;
+	int alg =STEREO_SGBM;
 	// STEREO_HH;
 	// STEREO_VAR;
 	// STEREO_3WAY;
 
-	numberOfDisparities = 208;
-	SADWindowSize = 39;
+	numberOfDisparities = 176;
+	SADWindowSize = 9;
 
 	if (numberOfDisparities < 1 || numberOfDisparities % 16 != 0)		{
 	printf("Command-line parameter error: The max disparity (--maxdisparity=<...>) must be a positive integer divisible by 16\n");

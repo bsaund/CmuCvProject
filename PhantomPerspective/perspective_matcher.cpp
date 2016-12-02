@@ -52,7 +52,7 @@ void fillInMissingCorr(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 			if(!isFilled(img, y, x)){
 				if(!fillingPatch){
 					leftInd = x-1;
-					rd = depthImg.at<float>(y,x-1);
+					ld = depthImg.at<float>(y,x-1);
 				}
 				fillingPatch = true;
 				continue;
@@ -61,27 +61,28 @@ void fillInMissingCorr(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 			if(!fillingPatch)
 				continue;
 
-			ld = depthImg.at<float>(y,x);
+			rd = depthImg.at<float>(y,x);
 			int rightInd = x;
 
 			if(ld < rd){
-				
 				if(leftInd == 0){
 					int lImgL = lFrom.at<int>(y,rightInd);
 					for(int i = 1; i < rightInd-leftInd; i++){
 						img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(lImgL - i);
+						// img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(y, rightInd- i);
 					}
 				} else {
-					int lImgL = lFrom.at<int>(y,leftInd);
+					int rImgR = rFrom.at<int>(y,rightInd);
 					for(int i = 1; i < rightInd-leftInd; i++){
-						img.at<Vec3b>(y,leftInd + i) = leftImg.at<Vec3b>(lImgL + i);
+						// for(int ind = leftInd+1; ind < rightInd; ind++){
+						img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(rImgR - i);
 					}
+
 				}
 			} else {
-				int rImgR = rFrom.at<int>(y,rightInd);
+				int lImgL = lFrom.at<int>(y,leftInd);
 				for(int i = 1; i < rightInd-leftInd; i++){
-				// for(int ind = leftInd+1; ind < rightInd; ind++){
-					img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(rImgR - i);
+					img.at<Vec3b>(y,leftInd + i) = leftImg.at<Vec3b>(lImgL + i);
 				}
 			}
 
