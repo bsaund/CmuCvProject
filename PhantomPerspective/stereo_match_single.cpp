@@ -64,7 +64,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
 	double movement = 0;
-	double increment = 0.01;
+	double increment = 0.1;
 
 	char charCheckForEsc = 0;
 
@@ -111,7 +111,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 }
 
 
-int mainSingle(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	std::string img1_filename = "testImgs/left.jpg";
 	std::string img2_filename = "testImgs/right.jpg";

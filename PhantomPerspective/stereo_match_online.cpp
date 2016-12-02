@@ -111,7 +111,7 @@ int continuousDepthMap(VideoCapture &camL, VideoCapture &camR, Ptr<StereoMatcher
 }
 
 
-int main(int argc, char** argv)
+int mainOnline(int argc, char** argv)
 {
 	std::string intrinsic_filename = "";
 	std::string extrinsic_filename = "";
