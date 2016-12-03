@@ -12,21 +12,23 @@ void rectifyBoth(Mat &img1, Mat &img2, const maps &m){
 }
 
 
-
+/*
+ *  Returns true if there is any non-zero element in element 
+ *  of matrix img (y,x)
+ */
 bool isFilled(const Mat &img, int y, int x){
-	Vec3b p = img.at<Vec3b>(y, x);
-	return p[0] || p[1] || p[2];
+	const uchar* val = img.ptr(y,x);
+	for(int i=0; i<img.elemSize(); i++){
+		if(val[i])
+			return true;
+	}
+	return false;
 }
 
-bool isFilledD(const Mat &img, int y, int x){
-	return img.at<float>(y, x) != 0;
-}
-
-bool isFilledI(const Mat &img, int y, int x){
-	return img.at<int>(y, x) != 0;
-}
-
-
+/*
+ *  Fill in single pixel gaps by averaging surrounding pixels
+ */
+template<typename T>
 void fillInLines(Mat &img){
 	for(int y=1; y<img.rows-1; y++){
 		for(int x=1; x<img.cols-1; x++){
@@ -34,65 +36,20 @@ void fillInLines(Mat &img){
 				continue;
 
 			//fill in horizontal lines from aliasing
-			int n = 1;
-			if(isFilled(img, y-1, x) && isFilled(img, y+n, x)){
-				img.at<Vec3b>(y,x) = img.at<Vec3b>(y-1, x)/2 + img.at<Vec3b>(y+n, x)/2;
+			if(isFilled(img, y-1, x) && isFilled(img, y+1, x)){
+				img.at<T>(y,x) = img.at<T>(y-1, x)/2 + img.at<T>(y+1, x)/2;
 				continue;
 			}
-
 
 			//fill in veritcal lines from aliasing
 			if(isFilled(img, y, x-1) && isFilled(img, y, x+1)){
-				img.at<Vec3b>(y,x) = img.at<Vec3b>(y, x-1)/2 + img.at<Vec3b>(y, x+1)/2;
+				img.at<T>(y,x) = img.at<T>(y, x-1)/2 + img.at<T>(y, x+1)/2;
 				continue;
 			}
 		}
 	}
 }
 
-void fillInLinesDepth(Mat &img){
-	for(int y=1; y<img.rows-1; y++){
-		for(int x=1; x<img.cols-1; x++){
-			if(isFilledD(img, y, x))
-				continue;
-
-			//fill in horizontal lines from aliasing
-			int n = 1;
-			if(isFilledD(img, y-1, x) && isFilledD(img, y+n, x)){
-				img.at<float>(y,x) = img.at<float>(y-1, x)/2 + img.at<float>(y+n, x)/2;
-				continue;
-			}
-
-			//fill in veritcal lines from aliasing
-			if(isFilledD(img, y, x-1) && isFilledD(img, y, x+1)){
-				img.at<float>(y,x) = img.at<float>(y, x-1)/2 + img.at<float>(y, x+1)/2;
-				continue;
-			}
-		}
-	}
-}
-
-void fillInLinesFrom(Mat &img){
-	for(int y=1; y<img.rows-1; y++){
-		for(int x=1; x<img.cols-1; x++){
-			if(isFilledI(img, y, x))
-				continue;
-
-			//fill in horizontal lines from aliasing
-			int n = 1;
-			if(isFilledI(img, y-1, x) && isFilledI(img, y+n, x)){
-				img.at<int>(y,x) = img.at<int>(y-1, x)/2 + img.at<int>(y+n, x)/2;
-				continue;
-			}
-
-			//fill in veritcal lines from aliasing
-			if(isFilledI(img, y, x-1) && isFilledI(img, y, x+1)){
-				img.at<int>(y,x) = img.at<int>(y, x-1)/2 + img.at<int>(y, x+1)/2;
-				continue;
-			}
-		}
-	}
-}
 
 void fillInMissingCorr(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 											 Mat &lFrom, Mat &rFrom){
@@ -125,34 +82,38 @@ void fillInMissingCorr(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 			int rightInd = x;
 			
 
-			if(rightInd - leftInd > 5)
-				continue;
+			// if(rightInd - leftInd > 5)
+			// 	continue;
 
-			printf("width %d\n", rightInd - leftInd);			
-
-			if(ld < rd){
-				// if(leftInd == 0){
-				// 	break;
-				// 	int lImgL = lFrom.at<int>(y,rightInd);
-				// 	for(int i = 1; i < rightInd-leftInd; i++){
-				// 		img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(lImgL - i);
-				// 		// img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(y, rightInd- i);
-				// 	}
-				// } else {
-				int rImgR = rFrom.at<int>(y,rightInd);
-				for(int i = 1; i < rightInd-leftInd; i++){
-					// for(int ind = leftInd+1; ind < rightInd; ind++){
-					// img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(y, (rImgR - i)/rightImg.cols);
-					img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(rImgR - i);
-				}
-
-				// }
-			} else {
-				int lImgL = lFrom.at<int>(y,leftInd);
-				for(int i = 1; i < rightInd-leftInd; i++){
-					img.at<Vec3b>(y,leftInd + i) = leftImg.at<Vec3b>(lImgL + i);
-				}
+			// printf("width %d\n", rightInd - leftInd);			
+			for(int i=1; i<rightInd - leftInd; i++){
+				img.at<Vec3b>(y,rightInd - i) = Vec3b(0,255,0);
 			}
+
+			// if(ld < rd){
+			// 	if(leftInd == 0){
+			// 		break;
+			// 		int lImgL = lFrom.at<int>(y,rightInd);
+			// 		for(int i = 1; i < rightInd-leftInd; i++){
+			// 			// img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(lImgL - i);
+
+			// 			// img.at<Vec3b>(y,rightInd - i) = leftImg.at<Vec3b>(y, rightInd- i);
+			// 		}
+			// 	} else {
+			// 	int rImgR = rFrom.at<int>(y,rightInd);
+			// 	for(int i = 1; i < rightInd-leftInd; i++){
+			// 		// for(int ind = leftInd+1; ind < rightInd; ind++){
+			// 		// img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(y, (rImgR - i)/rightImg.cols);
+			// 		// img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(rImgR - i);
+			// 	}
+
+			// 	// }
+			// } else {
+			// 	int lImgL = lFrom.at<int>(y,leftInd);
+			// 	for(int i = 1; i < rightInd-leftInd; i++){
+			// 		// img.at<Vec3b>(y,leftInd + i) = leftImg.at<Vec3b>(lImgL + i);
+			// 	}
+			// }
 			
 			rd = 0;
 			ld = 0;
@@ -262,10 +223,10 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 	namedWindow("preLine", 1);
 	imshow("preLines", newImage);
 
-	fillInLines(newImage);
-	fillInLinesDepth(depthImage);
-	fillInLinesFrom(cameFromL);
-	fillInLinesFrom(cameFromR);
+	fillInLines<Vec3b>(newImage);
+	fillInLines<float>(depthImage);
+	fillInLines<int>(cameFromL);
+	fillInLines<int>(cameFromR);
 
 
 	namedWindow("postLines", 1);
@@ -283,8 +244,6 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 
 	namedWindow("postFill", 1);
 	imshow("postFill", newImage);
-
-	
 }
 
 
