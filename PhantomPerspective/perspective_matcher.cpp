@@ -57,7 +57,7 @@ void fillInLines(Mat &img, bool average=true){
 }
 
 
-void fillInL(Mat &img, Mat &leftImg, Mat &rightImg, Mat &lFrom, Mat &rFrom,
+void fillInL(Mat &img, const Mat &leftImg, Mat &rightImg, Mat &lFrom, Mat &rFrom,
 						 int y, int leftInd, int rightInd){
 int lImgL = lFrom.at<int>(y,leftInd);
  for(int i = 1; i < rightInd-leftInd; i++){
@@ -65,7 +65,7 @@ int lImgL = lFrom.at<int>(y,leftInd);
  }
 }
 
-void fillInR(Mat &img, Mat &leftImg, Mat &rightImg, Mat &lFrom, Mat &rFrom,
+void fillInR(Mat &img, const Mat &leftImg, Mat &rightImg, Mat &lFrom, Mat &rFrom,
 						 int y, int leftInd, int rightInd){
 	int rImgR = rFrom.at<int>(y,rightInd);
 	Vec3b lpix = leftImg.at<Vec3b>(lFrom.at<int>(y,rightInd));
@@ -78,7 +78,7 @@ void fillInR(Mat &img, Mat &leftImg, Mat &rightImg, Mat &lFrom, Mat &rFrom,
 
 }
 
-void fillInMissingCorr(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
+void fillInMissingCorr(Mat &img, Mat &depthImg, const Mat &leftImg, Mat &rightImg,
 											 Mat &lFrom, Mat &rFrom){
 	int numFill = 0;
 	for(int y=1; y<img.rows-1; y++){
@@ -117,7 +117,7 @@ void fillInMissingCorr(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
 			if(leftInd == 0)
 				continue;
 
-
+			
 
 			if(ld < rd){
 				fillInR(img, leftImg, rightImg, lFrom, rFrom, y, leftInd, rightInd);
@@ -189,17 +189,36 @@ void preFilterDisp(Mat &disp){
 void getDifferentPerspective(Mat img1_colored, Mat img2_colored, 
 							 Mat &R, Mat &T,
 							 trinsics &p, 
-							 Mat &disp, Mat &newImage, Mat &depthImage) {
+														 Mat &disp, Mat &newImage, Mat &depthImage, Mat &combImg) {
 
 
-	Mat _3dImage;
-	reprojectImageTo3D(disp, _3dImage, p.Q, true);
-	Mat imagePoints;
+	Mat _3dImage, _3dImageTmp;
+
+
+	reprojectImageTo3D(disp, _3dImageTmp, p.Q, true);
+	Mat imagePointsTmp;
 	Mat cameFromL, cameFromR;
 
-	_3dImage = _3dImage.reshape(3, 1);
+	_3dImageTmp = _3dImageTmp.reshape(3, 1);
+	Mat sortedInd;
+	Mat chan[3];
+	split(_3dImageTmp, chan);
+	Mat _3dSorted = Mat::zeros(_3dImageTmp.size(), _3dImageTmp.type());;
 
-	projectPoints(_3dImage, R, T, p.M1, Mat(), imagePoints);
+	sortIdx(chan[2], sortedInd, CV_SORT_EVERY_ROW + CV_SORT_DESCENDING);	
+	for(int i=0; i<_3dImageTmp.cols; i++){
+		_3dSorted.at<Vec3f>(i) = _3dImageTmp.at<Vec3f>(sortedInd.at<int>(i));
+		// printf("%f\n", chan[2].at<float>(sortedInd.at<int>(i)));
+		// printf("%d\n", sortedInd.at<int>(i));
+	}
+	// _3dSorted.at<Vec3f>(0) = _3dImage.at<Vec3f>(0);
+
+	_3dImage = _3dImageTmp;
+	projectPoints(_3dSorted, R, T, p.M1, Mat(), imagePointsTmp);
+	Mat imagePoints = imagePointsTmp.clone();
+	for(int i=0; i<_3dImageTmp.cols; i++){
+		imagePoints.at<Point2f>(sortedInd.at<int>(i)) = imagePointsTmp.at<Point2f>(i);
+	}
 		
 	newImage = Mat::zeros(img1_colored.size(), img1_colored.type());
 	depthImage = Mat::zeros(img1_colored.size(), CV_32F);
@@ -227,8 +246,10 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 		
 
 	}
-	namedWindow("preLine", 1);
-	imshow("preLines", newImage);
+	// namedWindow("preLine", 1);
+	// imshow("preLines", newImage);
+
+	Mat repro = newImage.clone();
 
 	fillInLines<Vec3b>(newImage, false);
 	fillInLines<float>(depthImage, false);
@@ -236,21 +257,35 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 	fillInLines<int>(cameFromR, false);
 
 
-	namedWindow("postLines", 1);
-	imshow("postLines", newImage);
+	// namedWindow("postLines", 1);
+	// imshow("postLines", newImage);
 
 
 	preFilterDisp(depthImage);
 	preFilterNewImg(newImage);
 
-	namedWindow("postFilt", 1);
-	imshow("postFilt", newImage);
+	// namedWindow("postFilt", 1);
+	// imshow("postFilt", newImage);
 
 	postFillIn(newImage, depthImage, img1_colored, img2_colored, 
 						 cameFromL, cameFromR);
 
-	namedWindow("postFill", 1);
-	imshow("postFill", newImage);
+	// namedWindow("postFill", 1);
+	// imshow("postFill", newImage);
+
+	Size sz = img1_colored.size();
+	combImg = Mat(sz.height*2, sz.width*2, CV_8UC3);
+	Mat ul(combImg, Rect(0,0,sz.width,sz.height));
+	Mat ur(combImg, Rect(sz.width,0,sz.width,sz.height));
+	Mat ll(combImg, Rect(0,sz.height,sz.width,sz.height));
+	Mat lr(combImg, Rect(sz.width,sz.height,sz.width,sz.height));
+	img1_colored.copyTo(ul);
+	img2_colored.copyTo(ur);
+	repro.convertTo(ll, CV_8UC3);
+	newImage.convertTo(lr, CV_8UC3);
+
+
+
 }
 
 

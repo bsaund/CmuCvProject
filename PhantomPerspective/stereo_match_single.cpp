@@ -54,6 +54,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	namedWindow("disparity", 1);
 	namedWindow("newPerspective", 1);
 	namedWindow("newDepth", 1);
+	namedWindow("final", 1);
 
 	Ptr<DisparityWLSFilter> wls_filter;
 
@@ -91,10 +92,14 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 
 	dispInt.convertTo(disp, CV_32F);
 	disp /= 16;  //sgbm returns disp as a 4-fractional-bit short
-	imshow("left", img1);
-	imshow("right", img2);
+	// imshow("left", img1);
+	// imshow("right", img2);
 
-
+	VideoWriter outputVideo;
+	Size sz = img1_colored.size();
+	Size fullSz = Size(sz.width*2, sz.height*2);
+	int fourcc = CV_FOURCC('H', '2', '6', '4');
+	outputVideo.open("final.mp4", fourcc, 24, fullSz);
 	while (charCheckForEsc != 27){
 		int64 t = getTickCount();		
 		if(movement > 1 || movement < 0){
@@ -104,19 +109,20 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 		// printf("Movement by %f:\n", movement);
 		
 		Mat T = movement*p.T;
-		
+		Mat display;
 		getDifferentPerspective(img1_colored, img2_colored,
-														R, T, p, disp, newImage, depth_img);
+														R, T, p, disp, newImage, depth_img, display);
 
 		int numDisp = sgbm->getNumDisparities();
-		imshow("disparity", disp/numDisp);
-		imshow("newPerspective", newImage(Rect(numDisp, 0, 640 - numDisp, 480)));
-		imshow("newDepth", depth_img/100);
+		// imshow("disparity", disp/numDisp);
+		// imshow("newPerspective", newImage(Rect(numDisp, 0, 640 - numDisp, 480)));
+		// imshow("newDepth", depth_img/100);
+		imshow("final", display);
+		outputVideo << display;
 		
 		charCheckForEsc = cv::waitKey(1);		// delay (in ms) and get key press, if any
 		t = getTickCount() - t;
 		printf("Time elapsed: %fms\n", t * 1000 / getTickFrequency());
-
 	}
 
 	return 1;
@@ -126,8 +132,8 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 
 int main(int argc, char** argv)
 {
-	std::string img1_filename = "testImgs/8_left.jpg";
-	std::string img2_filename = "testImgs/8_right.jpg";
+	std::string img1_filename = "testImgs/2_left.jpg";
+	std::string img2_filename = "testImgs/2_right.jpg";
 	
 	std::string intrinsic_filename = "testImgs/intrinsics.yml";
 	std::string extrinsic_filename = "testImgs/extrinsics.yml";
@@ -148,7 +154,7 @@ int main(int argc, char** argv)
 	numberOfDisparities = 176;
 	// numberOfDisparities = 128;
 	// numberOfDisparities = 256;
-	SADWindowSize = 5;
+	SADWindowSize = 3;
 
 	if (numberOfDisparities < 1 || numberOfDisparities % 16 != 0)		{
 	printf("Command-line parameter error: The max disparity (--maxdisparity=<...>) must be a positive integer divisible by 16\n");
