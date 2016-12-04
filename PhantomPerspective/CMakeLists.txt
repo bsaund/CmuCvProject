@@ -14,6 +14,11 @@ target_link_libraries( stereo_match_single
   stereo_match_initializer
   perspective_matcher)
 
+add_executable(video_generator video_generator.cpp)
+target_link_libraries(video_generator
+  ${OpenCV_LIBS} 
+  stereo_match_initializer
+  perspective_matcher)
 
 
 # Commented because no main because visual studio

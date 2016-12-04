@@ -57,6 +57,44 @@ void fillInLines(Mat &img, bool average=true){
 }
 
 
+bool hasDepthSpike(const Mat &disp, int start, int width){
+	float maxD = 0, leftD = 0, rightD = 0;
+	int end = start+width;
+	int y = start/disp.cols;
+	int lx = start % disp.cols;
+	int rx = lx + width;
+	int i = 0;
+
+	while(leftD == 0){
+		i++;
+		if((lx-i) < 0)
+			return false;
+		leftD = disp.at<float>(start-i);
+	}
+	i=0;
+	while(rightD == 0){
+		i++;
+		if(rx+i > disp.cols)
+			return false;
+		rightD = disp.at<float>(end + i);
+	}
+
+
+	for(int ind = start; ind<end; ind++){
+		float d = disp.at<float>(ind);
+		if(d != 0){
+			maxD = max(d, maxD);
+		}
+	}
+	if(maxD == 0)
+		return false;
+
+	float spike = max(leftD, rightD)/maxD;
+	
+	return spike < 0.5;
+}
+
+
 void fillInL(Mat &img, const Mat &leftImg, Mat &rightImg, Mat &lFrom, Mat &rFrom,
 						 int y, int leftInd, int rightInd){
 int lImgL = lFrom.at<int>(y,leftInd);
@@ -71,19 +109,38 @@ void fillInR(Mat &img, const Mat &leftImg, Mat &rightImg, Mat &lFrom, Mat &rFrom
 	Vec3b lpix = leftImg.at<Vec3b>(lFrom.at<int>(y,rightInd));
 	Vec3b rpix = rightImg.at<Vec3b>(rImgR);
 	double scale = norm(lpix, CV_L2)/ norm(rpix, CV_L2);
+	scale = max(min(scale, 1.3), .7);
 
 	for(int i = 1; i < rightInd-leftInd; i++){
 		img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(rImgR - i) * scale;
+		// img.at<Vec3b>(y,rightInd - i) = rightImg.at<Vec3b>(rImgR - i);
+	}
+
+}
+
+void fillInGreen(Mat &img, int y, int leftInd, int rightInd){
+
+	for(int i = 1; i < rightInd-leftInd; i++){
+		img.at<Vec3b>(y,rightInd - i) = Vec3b(0, 255, 0);
 	}
 
 }
 
 void fillInMissingCorr(Mat &img, Mat &depthImg, const Mat &leftImg, Mat &rightImg,
-											 Mat &lFrom, Mat &rFrom){
+											 Mat &lFrom, Mat &rFrom, Mat &dispLTmp, Mat &dispRTmp){
 	int numFill = 0;
+	Mat dispL = dispLTmp.clone();
+	Mat dispR = dispRTmp.clone();
+
+	dispLTmp = Mat();
+	dispRTmp = Mat();
+	cvtColor(dispL, dispLTmp, CV_GRAY2RGB);
+	cvtColor(dispR, dispRTmp, CV_GRAY2RGB);
+
+	
 	for(int y=1; y<img.rows-1; y++){
-		int rd = 0;
-		int ld = 0;
+		float rd = 0;
+		float ld = 0;
 		bool fillingPatch = false;
 		int leftInd = 0;
 
@@ -103,8 +160,6 @@ void fillInMissingCorr(Mat &img, Mat &depthImg, const Mat &leftImg, Mat &rightIm
 			fillingPatch = false;			
 			
 
-			
-
 			rd = depthImg.at<float>(y,x);
 			int rightInd = x;
 			
@@ -116,25 +171,76 @@ void fillInMissingCorr(Mat &img, Mat &depthImg, const Mat &leftImg, Mat &rightIm
 			// printf("width %d\n", rightInd - leftInd);
 			if(leftInd == 0)
 				continue;
-
+			fillInGreen(dispLTmp, y, leftInd, rightInd);
+			// if(abs((rd-ld)/rd) < .1){
+			// 	fillInL(img, leftImg, rightImg, lFrom, rFrom, y, leftInd, rightInd);
+			// 	continue;
+			// }
 			
+
+			int llind = lFrom.at<int>(y, leftInd);
+			int lrind = rFrom.at<int>(y, leftInd);
+			int width = rightInd - leftInd;
+
+			int intense = 100;
+
+			// fillInL(img, leftImg, rightImg, lFrom, rFrom, y, leftInd, rightInd);
+			// continue;
+			if(hasDepthSpike(dispR, lrind, width)){
+				fillInL(img, leftImg, rightImg, lFrom, rFrom, y, leftInd, rightInd);
+				// fillInGreen(img, y, leftInd, rightInd);
+				for(int i=0; i<width; i++){
+					dispLTmp.at<Vec3f>(lrind + i) = Vec3f(intense, 0, 0);
+				}
+				// fillInGreen(dispLTmp, y, leftInd, rightInd);
+
+				continue;
+			}
+
+
+			// continue;
+
+			if(hasDepthSpike(dispL, llind, width)){
+				numFill++;
+				fillInR(img, leftImg, rightImg, lFrom, rFrom, y, leftInd, rightInd);
+				// fillInGreen(img, y, leftInd, rightInd);
+				for(int i=0; i<width; i++){
+					dispLTmp.at<Vec3f>(llind + i) = Vec3f(0, intense, 0);
+				}
+
+				continue;
+			}
+			// continue;
+
 
 			if(ld < rd){
 				fillInR(img, leftImg, rightImg, lFrom, rFrom, y, leftInd, rightInd);
+				for(int i=0; i<width; i++){
+					dispLTmp.at<Vec3f>(llind + i) = Vec3f(0, intense, 0);
+				}
+
 				continue;
 			}
 			fillInL(img, leftImg, rightImg, lFrom, rFrom, y, leftInd, rightInd);
+			for(int i=0; i<width; i++){
+				dispLTmp.at<Vec3f>(llind + i) = Vec3f(intense, 0, 0);
+			}
+
 
 		}
 	}	
+	namedWindow("depth", 1);
+	imshow("depth", dispLTmp);
+
 	printf("Num fill: %d\n", numFill);
 }
 
 void postFillIn(Mat &img, Mat &depthImg, Mat &leftImg, Mat &rightImg,
-								Mat &lFrom, Mat &rFrom){
+								Mat &lFrom, Mat &rFrom, Mat &dispL, Mat &dispR){
 
-	fillInMissingCorr(img, depthImg, leftImg, rightImg, lFrom, rFrom);
+	fillInMissingCorr(img, depthImg, leftImg, rightImg, lFrom, rFrom, dispL, dispR);
 }
+
 
 void preFilterNewImg(Mat &img){
 	for(int x=0; x<img.cols; x++){
@@ -187,15 +293,16 @@ void preFilterDisp(Mat &disp){
 
 
 void getDifferentPerspective(Mat img1_colored, Mat img2_colored, 
-							 Mat &R, Mat &T,
-							 trinsics &p, 
-														 Mat &disp, Mat &newImage, Mat &depthImage, Mat &combImg) {
+														 Mat &R, Mat &T,
+														 trinsics &p, 
+														 Mat &dispL, Mat &dispR,
+														 Mat &newImage, Mat &depthImage, Mat &combImg) {
 
 
 	Mat _3dImage, _3dImageTmp;
 
 
-	reprojectImageTo3D(disp, _3dImageTmp, p.Q, true);
+	reprojectImageTo3D(dispL, _3dImageTmp, p.Q, true);
 	Mat imagePointsTmp;
 	Mat cameFromL, cameFromR;
 
@@ -222,6 +329,7 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 		
 	newImage = Mat::zeros(img1_colored.size(), img1_colored.type());
 	depthImage = Mat::zeros(img1_colored.size(), CV_32F);
+	Mat depthImageR = Mat::zeros(img1_colored.size(), CV_32F);
 	cameFromL = Mat::zeros(img1_colored.size(), CV_32S);
 	cameFromR = Mat::zeros(img1_colored.size(), CV_32S);
 	for (int i = 0; i < imagePoints.rows; i++) {				
@@ -241,8 +349,9 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 		// newImage.at<Vec3b>(y, x) = img2_colored.at<Vec3b>(i - disp.at<float>(i));
 		
 		depthImage.at<float>(y, x) = _3dImage.at<Vec3f>(0,i)[2];
+		depthImageR.at<float>(y, x) = _3dImage.at<Vec3f>(0,i-(int)dispL.at<float>(i))[2];
 		cameFromL.at<int>(y,x) = i;
-		cameFromR.at<int>(y,x) = i - (int)disp.at<float>(i);
+		cameFromR.at<int>(y,x) = i - (int)dispL.at<float>(i);
 		
 
 	}
@@ -267,8 +376,12 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 	// namedWindow("postFilt", 1);
 	// imshow("postFilt", newImage);
 
+	Mat dispLC = dispL.clone();
+	Mat dispRC = dispR.clone();
+
+
 	postFillIn(newImage, depthImage, img1_colored, img2_colored, 
-						 cameFromL, cameFromR);
+						 cameFromL, cameFromR, dispLC, dispRC);
 
 	// namedWindow("postFill", 1);
 	// imshow("postFill", newImage);
@@ -280,7 +393,10 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 	Mat ll(combImg, Rect(0,sz.height,sz.width,sz.height));
 	Mat lr(combImg, Rect(sz.width,sz.height,sz.width,sz.height));
 	img1_colored.copyTo(ul);
-	img2_colored.copyTo(ur);
+	// img2_colored.copyTo(ur);
+	Mat cDisp;
+	cvtColor(depthImage, cDisp, CV_GRAY2RGB);
+	cDisp.convertTo(ur, CV_8UC3);
 	repro.convertTo(ll, CV_8UC3);
 	newImage.convertTo(lr, CV_8UC3);
 
