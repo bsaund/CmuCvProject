@@ -143,6 +143,9 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 		t = getTickCount() - t;
 		printf("Time elapsed: %fms\n", t * 1000 / getTickFrequency());
 	}
+	
+	imwrite("disp.jpg", dispL);
+	imwrite("depth.jpg", depth_img);
 
 	return 1;
 
@@ -151,11 +154,11 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 
 int main(int argc, char** argv)
 {
-	std::string img1_filename = "testImgs/8_left.jpg";
-	std::string img2_filename = "testImgs/8_right.jpg";
+	std::string img1_filename = "testImgs_01/left.jpg";
+	std::string img2_filename = "testImgs_01/right.jpg";
 	
-	std::string intrinsic_filename = "testImgs/intrinsics.yml";
-	std::string extrinsic_filename = "testImgs/extrinsics.yml";
+	std::string intrinsic_filename = "testImgs_01/intrinsics.yml";
+	std::string extrinsic_filename = "testImgs_01/extrinsics.yml";
 	std::string disparity_filename = "";
 	std::string point_cloud_filename = "";
 
