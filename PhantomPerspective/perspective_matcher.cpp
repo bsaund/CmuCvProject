@@ -400,6 +400,19 @@ void getDifferentPerspective(Mat img1_colored, Mat img2_colored,
 	repro.convertTo(ll, CV_8UC3);
 	newImage.convertTo(lr, CV_8UC3);
 
+	rectangle(ul, cvPoint(20,40), cvPoint(130,10), cvScalar(0,0,0), CV_FILLED);
+	putText(ul, "Camera", cvPoint(30,30), FONT_HERSHEY_COMPLEX_SMALL, 0.8, 
+					cvScalar(250,250,250), 1, CV_AA);
+	putText(ur, "Depth", cvPoint(30,30), FONT_HERSHEY_COMPLEX_SMALL, 0.8, 
+					cvScalar(250,250,250), 1, CV_AA);
+	putText(ll, "3D", cvPoint(30,30), FONT_HERSHEY_COMPLEX_SMALL, 0.8, 
+					cvScalar(250,250,250), 1, CV_AA);
+	putText(lr, "Filled Projection", cvPoint(30,30), FONT_HERSHEY_COMPLEX_SMALL, 0.8, 
+					cvScalar(250,250,250), 1, CV_AA);
+	// Mat tmp;
+	// newImage.convertTo(tmp, CV_8UC3);
+	// GaussianBlur(tmp, lr, Size(5,5), 0, 5);
+
 
 
 }

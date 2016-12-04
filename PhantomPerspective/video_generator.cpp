@@ -106,7 +106,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	Mat T = Mat::zeros(3, 1, cv::DataType<double>::type);
 
 	double movement = 0;
-	double increment = 0.011;
+	double increment = 0.013;
 
 	char charCheckForEsc = 0;
 
@@ -139,7 +139,7 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 	}
 
 
-	for(int i=0; i<175; i++){
+	for(int i=0; i<150; i++){
 		movement += increment;
 		if(movement >= 1 || movement <= 0){
 			increment *= -1;
