@@ -25,11 +25,10 @@ int singleDepthMap(Mat img1, Mat img2, Mat img1_colored, Mat img2_colored,
 									 maps m, trinsics &p, VideoWriter &vid);
 
 
-int runWriter(std::string img1_filename, std::string img2_filename,
+int runWriter(std::string img1_filename, std::string img2_filename, 
+							std::string intrinsic_filename,	std::string extrinsic_filename,
 							VideoWriter &vid){
 
-	std::string intrinsic_filename = "testImgs/intrinsics.yml";
-	std::string extrinsic_filename = "testImgs/extrinsics.yml";
 
 
 
@@ -173,18 +172,26 @@ int main(int argc, char** argv)
 	std::string img1_filename = "testImgs/2_left.jpg";
 	std::string img2_filename = "testImgs/2_right.jpg";
 
+	std::string intr = "testImgs/intrinsics.yml";
+	std::string extr = "testImgs/extrinsics.yml";
+
 	VideoWriter vid;
   Mat img1_colored = imread(img1_filename, CV_LOAD_IMAGE_COLOR);
 	Size sz = img1_colored.size();
 	Size fullSz = Size(sz.width*2, sz.height*2);
 	int fourcc = CV_FOURCC('H', '2', '6', '4');
 	vid.open("final.mp4", fourcc, 24, fullSz);
+
+	runWriter("testImgs_01/left.jpg",
+						"testImgs_01/right.jpg",
+						"testImgs_01/intrinsics.yml",
+						"testImgs_01/extrinsics.yml", vid);
 	
 	for(int i=1; i<=8; i++){
 		std::ostringstream ossL, ossR;
 		ossL << "testImgs/" << i << "_left.jpg";
 		ossR << "testImgs/" << i << "_right.jpg";
-		runWriter(ossL.str(), ossR.str(), vid);
+		runWriter(ossL.str(), ossR.str(), intr, extr, vid);
 	}
 	return 0;
 }
